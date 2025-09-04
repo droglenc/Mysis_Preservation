@@ -1,0 +1,488 @@
+%========================================================================================================================
+% setwd("c://aaaWork//Current Research//yNearlyFinished//MYSIS_Preservation//1_Analysis//")
+% Sweave("Final_Analysis.Rnw")
+%========================================================================================================================
+\documentclass[a4paper]{article}
+\include{preamble}
+
+\begin{document}
+%========================================================================================================================
+% Overall Sweave and R options %------------------------------------------------------------------------------------------------------------------------
+\SweaveOpts{prefix.string=Figs/lw}   % sets prefix for figures -- folder and prefix name
+\SweaveOpts{eps=FALSE}                 % don't make EPS figures as we will only use PDF
+\SweaveOpts{width=5,height=5}      % sets size of graphic in R
+
+<<echo=false,results=hide>>=
+options(width=90)
+options(SweaveHooks = list(fig = function() par(mar=c(3.5,3.5,1,1),mgp=c(2,0.75,0))))
+library(NCStats)
+library(xlsReadWrite)
+detach.all()
+@
+%========================================================================================================================
+
+\title{Mysis Preservation -- Length-Weight Analysis for Manuscript}
+\author{\vspace{-12pt}}
+\date{\vspace{-12pt}\today}
+\maketitle
+\vspace{-24pt}
+
+\section{Length Analysis}
+\subsection{Initialization}
+\subsubsection{Data entry and cleaning}
+<<>>=
+mysis <- read.xls("Mysis_Data_Master.xls",sheet="Mysis",     # must change directory to where data file is
+colClasses=c("logical","logical","factor","logical",         # so that len.p2w is loaded as a numeric and not a factor (b/c of NA)
+"logical","factor","factor","numeric","factor","factor","isodate","isotime","factor","factor","factor","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","factor")) 
+mysisL <- mysis[mysis$include.L,]                            # excludes values not to be included
+mysis.len <- mysisL[mysisL$use.l,]                           # just a data frame for length analysis
+mysis.len$tx <- factor(mysis.len$tx)                         # this is needed to remove the "Fresh" level which is not included in this analysis.
+mysis.len$stage <- factor(mysis.len$stage)                   # this is needed to remove the "Gravid" level which is not included in this analysis.
+mysis.len$group <- mysis.len$stage:mysis.len$tx              # creates a group variable that is a combination of the stage and treatment.
+mysis.len$loss.p2w <- mysis.len$len.p2w-mysis.len$len.fr     # computes loss in length for 2 weeks preservation (negative means loss)
+mysis.len$loss.p2m <- mysis.len$len.p2m-mysis.len$len.fr     # same but for 2 months preservation
+mysis.len$ploss.p2w <- mysis.len$loss.p2w/mysis.len$len.fr   # computes proportional loss in length for 2 weeks perservation
+mysis.len$ploss.p2m <- mysis.len$loss.p2m/mysis.len$len.fr   # same but for 2 months preservation
+@
+
+Getting rid of juveniles -- decided this from length-weight work -- see below.
+<<>>=
+mysis.len2 <- subset(mysis.len,stage!="Juv")                 # removes juveniles
+mysis.len2$stage <- factor(mysis.len2$stage)                 # refactors stage so that juvenile label is removed
+mysis.len2$group <- factor(mysis.len2$group)                 # same with group factor
+@
+
+% none of this is shown because decided to eliminate juveniles
+<<echo=FALSE,results=hide,eval=FALSE>>=
+attach(mysis.len)
+ftable(xtabs(~tx+stage))                                     # get sample sizes -- not in ms (use no juvies below)
+ftable(xtabs(~tx+stage+len.fr.bin))                          #  not in ms (use no juvies below)
+tapply(len.fr,stage:tx,Summary,na.rm=T)                      # sample summaries of length --  not in ms (use no juvies below)
+tapply(loss.p2w,stage:tx,Summary,na.rm=T)                    # sample summaries of loss in length --  not in ms (use no juvies below)
+
+# initial model fits on absolute loss
+lm1 <- lm(loss.p2w~len.fr*stage*tx)                          # not in ms -- decided to remove juveniles to match LW work
+Anova(lm1)                                                   # no slope differences, intercepts differ by treatment
+fit.plot(lm1,legend="topleft")
+detach(mysis.len)
+@
+
+
+\subsection{Sample Summaries}
+These results form Table R1 in the manuscript.
+<<>>=
+attach(mysis.len2)
+ftable(xtabs(~tx+stage))                                     # get sample sizes -- in ms
+tapply(len.fr,stage:tx,Summary,na.rm=T)                      # sample summaries of length --  in ms
+tapply(loss.p2w,stage:tx,Summary,na.rm=T)                    # sample summaries of loss in length --  in ms
+@
+
+\subsection{Results on Length After 2 Weeks Preservation}
+\textbf{Most (63.1\%) Mysids were shorter after two weeks of , while a small number (10.8\%) actually appeared to be longer after preservation.}
+<<>>=
+p <- prop.table(table(round(loss.p2w,1)))
+p
+sum(p[1:6]); sum(p[8:9])                                     # lost/gained length -- in ms
+@
+
+\textbf{The change in standard length after two weeks of preservation was not significantly related to the fresh standard length measurement (p=0.2001) nor did it differ between male and female Mysids (p=0.1732).  There was weak but insignificant evidence (p=0.0638) that Mysids preserved in 8\% buffered formalin lost more length than Mysids preserved in 8\% sugar-buffered formalin.}
+<<>>=
+lm2 <- lm(loss.p2w~len.fr*stage*tx)
+Anova(lm2)                                                   # in ms
+@
+
+\emph{The folowing plot is NOT in the manuscript.}
+<<label=PlotRawLen,fig=TRUE,include=FALSE>>=
+fit.plot(lm2,legend="topleft")
+@
+
+\includegraphics[width=3in]{Figs/lw-PlotRawLen}
+
+\textbf{Thus, regardless of fresh standard length, life stage or preservation type, Mysids lost an average of 0.14 mm (95\% CI: 0.10,0.19).}
+<<>>=
+t.test(loss.p2w)                                             # in ms
+@
+
+<<>>=
+detach(mysis.len2)
+@
+
+
+\section{Length-Weight Analysis}
+\subsection{Initialization}
+\subsubsection{Data entry and cleaning}
+<<>>=
+mysis <- read.xls("Mysis_Data_Master.xls",sheet="Mysis")     # must change directory to where data file is
+mysis$c.wt <- mysis$c.wt*1000                                # convert g to mg
+mysis1 <- mysis[mysis$include.LW,]                           # excludes values not to be included
+mysis2 <- mysis1[mysis1$use.lw==TRUE,]                       # data frame of just individuals for LW analysis
+mysis2$logwt <- log10(mysis2$c.wt)                           # transform weight to log10
+mysis2$loglen <- log10(mysis2$len)                           # transform length to log10
+mysis2$treat <- mysis2$tx:mysis2$stage                       # create an overall treatment variale (makes life easier at times)
+@
+
+\R{mysis2} is now the cleaned and ready data frame.
+
+\subsubsection{declare some labels}
+<<>>=
+xlbl1 <- "Standard Length (mm)"
+xlbl2 <- "log(Standard Length (mm))"
+ylbl1 <- "Dry Weight (mg)"
+ylbl2 <- "log(Dry Weight (mg))"
+@
+
+\subsection{EDA}
+\subsubsection{Original data}
+\emph{None of this section is in the manuscript.}  Note (1) that gravid-8BF are missing and (2) increased variance at small lengths on log-log scale.  This led to the exclusion of juveniles -- problem with weights of small specimens.
+
+<<label=PlotRaw1,fig=TRUE,include=FALSE>>=
+attach(mysis2)
+ftable(xtabs(~tx+stage+len.bin))                                                   # get sample sizes -- note that gravid-8BF are missing
+ftable(xtabs(~tx+stage))
+plot(c.wt~len,pch=as.numeric(tx),col=as.numeric(stage),xlab=xlbl1,ylab=ylbl1)      # plot relationship on original scale
+legend(x="topleft",legend=levels(tx:stage),col=rep(seq(1,4),3),pch=rep(seq(1,4),each=4))
+@
+
+\includegraphics[width=3in]{Figs/lw-PlotRaw1}
+
+<<echo=FALSE,results=hide,eval=FALSE>>=
+tapply(len,stage:tx,Summary,na.rm=T)                                               # sample summaries
+@
+
+<<label=PlotTrans1,fig=TRUE,include=FALSE>>=
+plot(logwt~loglen,pch=as.numeric(tx),col=as.numeric(stage),xlab=xlbl2,ylab=ylbl2)  # plot relationship on log-log scale
+legend(x="topleft",legend=levels(tx:stage),col=rep(seq(1,4),3),pch=rep(seq(1,4),each=4))
+detach(mysis2)
+@
+
+\includegraphics[width=3in]{Figs/lw-PlotTrans1}
+
+\subsubsection{Permanently Remove Juveniles}
+<<>>=
+mysis3 <- mysis2[mysis2$stage!="Juv",] 
+mysis3$stage <- factor(mysis3$stage)                         # re-factors so juvenile is not in list of factors
+mysis3$treat <- factor(mysis3$treat)                         # re-factors to remove unused treatments
+attach(mysis3)
+@
+
+\R{mysis3} is now the cleaned and ready data frame
+
+\emph{These results are not in the manuscript -- just double-checking that juveniles have been removed.}
+<<>>=
+ftable(xtabs(~tx+stage+len.bin))                             # get sample sizes -- double-check that juveniles have been removed -- not in ms
+@
+
+The following results form Table R2 in the manuscript.
+<<>>=
+ftable(xtabs(~tx+stage))                                     # sample size -- in ms
+tapply(len,stage:tx,Summary,na.rm=T)                         # summary statistics -- in ms
+tapply(c.wt,stage:tx,Summary,na.rm=T)                        # summary statistics -- in ms
+@
+
+\emph{The following figure is NOT in the manuscript.}
+<<echo=FALSE,results=hide>>=
+attach(mysis3)
+@
+<<label=PlotTrans2,fig=TRUE,include=FALSE>>=
+plot(logwt~loglen,pch=as.numeric(tx),col=as.numeric(stage),xlab=xlbl2,ylab=ylbl2)          # plot relationship on log-log scale -- not in ms
+legend(x="topleft",legend=levels(tx:stage),col=rep(seq(1,3),3),pch=rep(seq(1,3),each=3))
+detach(mysis3)
+@
+
+\includegraphics[width=3in]{Figs/lw-PlotTrans2}
+
+\subsection{First Length-Weight Model Analysis}
+The first model examined the effect of all three preservation treatments and two life stages (males and females) on the L-W relationship.
+
+\subsubsection{Temporarily excludes gravids}
+\emph{None of these results are in the manuscript.}
+<<>>=
+mysis3.nograv <- mysis3[mysis3$stage!="Grav",]               # excludes gravids
+mysis3.nograv$stage <- factor(mysis3.nograv$stage)           # re-factors so gravid is not in list of factors
+mysis3.nograv$treat <- factor(mysis3.nograv$treat)           # re-factors to remove unused treatments
+attach(mysis3.nograv)
+ftable(xtabs(~tx+stage+len.bin))                             # get sample sizes -- double-check that gravids have been removed -- not in ms
+@
+
+\subsubsection{Fitting The Model}
+<<>>=
+lm1 <- lm(logwt~loglen*tx*stage)
+@
+
+\subsubsection*{Assumption Checking}
+\emph{None of these results are in the manuscript.  The normality test and non-constant variance test both indicate assumption violations.  However, the residual plot shows a general homoscedasticity (with the exception of two minor outliers and a small narrowing at large lengths) and the histogram is largely symmetric.}
+
+<<label=mdl1FitPlot1,fig=TRUE,include=FALSE>>=
+fit.plot(lm1,leg="topleft",main="")
+ad.test(lm1$residuals)
+ncv.test(lm1)
+@
+
+\includegraphics[width=3in]{Figs/lw-mdl1FitPlot1}
+
+<<label=mdl1ResidPlot1,fig=TRUE,include=FALSE>>=
+residual.plot(lm1,main="")
+@
+
+\includegraphics[width=3in]{Figs/lw-mdl1ResidPlot1}
+
+<<label=mdl1ResidHist1,fig=TRUE,include=FALSE>>=
+hist(lm1$residuals,main="")
+@
+
+\includegraphics[width=3in]{Figs/lw-mdl1ResidHist1}
+
+\subsubsection*{Results}
+<<echo=FALSE,results=hide>>=
+alm1 <- Anova(lm1)
+sclm1 <- comp.slopes(lm1)$comparisons
+@
+
+\textbf{The first linear model fit to males and females and all three preservation treatments showed that there was a significant difference in slope among the three preservation treatments (p=\Sexpr{round(alm1["loglen:tx","Pr(>F)"],4)}) but not among the two life-stages (p=\Sexpr{round(alm1["loglen:stage","Pr(>F)"],4)}).}
+
+\textbf{The mean log(weight) adjusted for log(length) did not differ among male and females (p=\Sexpr{round(alm1["stage","Pr(>F)"],4)}).}
+
+<<>>=
+Anova(lm1)    # slope differences due to treatments -- in ms
+@
+
+\textbf{Post hoc multiple comparisons indicated that the 8\% buffered formalin and 8\% sugar-buffered formalin treatments had statistically similar slopes (p=\Sexpr{round(sclm1[1,"adj.p"],4)}) that were significantly steeper than the slope of the fresh preserved treatment (p<\Sexpr{round(max(sclm1[2:3,"adj.p"]),4)}).}
+
+<<>>=
+comp.slopes(lm1)  # in ms
+@
+
+\emph{Removed fresh treatment and fit a model with males and females combined to see if there was a difference in intercepts between the 8\% buffered formalin and 8\% sugar buffered formalin group.}
+
+<<>>=
+detach(mysis3.nograv)
+mysis3.nograv.nofresh <- mysis3.nograv[mysis3.nograv$tx!="Fresh",]
+mysis3.nograv.nofresh$tx <- factor(mysis3.nograv.nofresh$tx)
+attach(mysis3.nograv.nofresh)
+lm1a <- lm(logwt~loglen+tx)                                 # compare intercepts for 8BF and 8SBF combined for M & F -- in ms
+@
+
+\textbf{Further comparisons indicated that the 8\% sugar-buffered formalin treatment had a larger mean log(weight) than the 8\% buffered formalin treatment for all values of log(length) (p<0.0005).}
+<<>>=
+anova(lm1a)
+comp.intercepts(lm1a)                                       # in ms
+detach(mysis3.nograv.nofresh)
+@
+
+\subsection{Second Length-Weight Model Analysis}
+The second model examined the effect of two preservation treatments (fresh preserved and 8% sugar-buffered formalin) and all three life stages on the L-W relationship.
+
+\subsubsection{Temporarily Excludes 8\% Buffered Formaling Treatment}
+<<>>=
+mysis3.no8BF <- mysis3[mysis3$tx!="8BF",]
+mysis3.no8BF$stage <- factor(mysis3.no8BF$stage)            # re-factors so gravid is not in list of factors
+mysis3.no8BF$tx <- factor(mysis3.no8BF$tx)                  # re-factors to remove unused treatments
+mysis3.no8BF$treat <- factor(mysis3.no8BF$treat)            # re-factors to remove unused treatments
+attach(mysis3.no8BF)
+ftable(xtabs(~tx+stage+len.bin))
+@
+
+\subsubsection{Fitting The Model}
+<<>>=
+lm2 <- lm(logwt~loglen*tx*stage)
+@
+
+\subsubsection*{Assumption Checking}
+\emph{None of these results are in the manuscript.  The normality test and non-constant variance test both indicate assumption violations.  However, the residual plot shows a general homoscedasticity (with the exception of two minor outliers and a small narrowing at large lengths) and the histogram is largely symmetric.}
+
+<<label=mdl2FitPlot1,fig=TRUE,include=FALSE>>=
+fit.plot(lm2,leg="topleft",main="")
+ad.test(lm2$residuals)
+ncv.test(lm2)
+@
+
+\includegraphics[width=3in]{Figs/lw-mdl2FitPlot1}
+
+<<label=mdl2ResidPlot1,fig=TRUE,include=FALSE>>=
+residual.plot(lm2,main="")
+@
+
+\includegraphics[width=3in]{Figs/lw-mdl2ResidPlot1}
+
+<<label=mdl2ResidHist1,fig=TRUE,include=FALSE>>=
+hist(lm2$residuals,main="")
+@
+
+\includegraphics[width=3in]{Figs/lw-mdl2ResidHist1}
+
+\subsubsection*{Results}
+<<echo=FALSE,results=hide>>=
+alm2 <- Anova(lm2)
+sclm2 <- comp.slopes(lm2)$comparisons
+alm2a <- anova(lm2a)
+iclm2a <- comp.intercepts(lm2a)$comparisons
+@
+
+\textbf{The second linear model fit to all three life-stages and the fresh preserved and 8\% sugar-buffered formalin treatments showed that there was a significantly steeper slope for the 8\% sugar-buffered formalin treatment (p=\Sexpr{round(alm2["loglen:tx","Pr(>F)"],4)}) but no difference in slope among the three life-stages (\Sexpr{round(alm2["loglen:stage","Pr(>F)"],4)}).}
+
+<<>>=
+Anova(lm2)                                                 # slope differences due to treatments, intercept due to stage -- in ms
+comp.slopes(lm2)                                           # in ms
+@
+
+\textbf{Within a preservation treatment there was a significant difference in mean log(weight) adjusted for log(length) (\Sexpr{round(alm2a["stage","Pr(>F)"],4)}) with gravid females being significantly heavier than male or non-gravid females for all values of log(length) (p<\Sexpr{round(max(iclm2a[c(1,3),"p.adj"]),4)}).}
+
+<<>>=
+lm2a <- lm(logwt~loglen+stage)
+anova(lm2a)                                                # in ms
+comp.intercepts(lm2a)                                      # in ms
+detach(mysis3.no8BF)
+@
+
+
+\subsection{Length-Weight Regressions for Different Groups}
+\subsubsection{Males and Females in Fresh Group}
+\emph{This isolates just the fresh treatment and creates a stage variable that has gravid females and males/females combined.  It then fits a model with a common slope and separate intercepts by the new stage variable.}
+
+<<>>=
+mysis3.fresh <- mysis3[mysis3$tx=="Fresh",]                                    # just the fresh tx
+mysis3.fresh$stage1 <- factor(ifelse(mysis3.fresh$stage=="Grav","Grav","MF"))  # combine males and females
+mysis3.fresh$tx <- factor(mysis3.fresh$tx)
+attach(mysis3.fresh)
+lm3.fresh <- lm(logwt~loglen+stage1)
+summary(lm3.fresh)                                         # in ms
+@
+
+<<echo=FALSE,results=hide>>=
+c1 <- coef(lm3.fresh)
+@
+
+\emph{Thus, the equations of the lines are (these are in the manuscript)...}
+
+\begin{itemize}
+  \item Fresh,MF: $log_{10}(W)$ = \Sexpr{round(c1[1]+c1[3],4)} + \Sexpr{round(c1[2],4)}$log_{10}(L)$
+  \item Fresh,Gravid: $log_{10}(W)$ = \Sexpr{round(c1[1],4)} + \Sexpr{round(c1[2],4)}$log_{10}(L)$
+\end{itemize}
+
+\emph{The following is not in the manuscript -- just a visual check}
+<<label=indFitPlot1,fig=TRUE,include=FALSE>>=
+fit.plot(lm3.fresh,main="",leg="topleft")                  # not in ms
+@
+
+\includegraphics[width=3in]{Figs/lw-indFitPlot1}
+
+<<>>=
+detach(mysis3.fresh)
+@
+
+\subsubsection{Males and Females in Fresh Group}
+\emph{This isolates the 8BF and 8SBF groups (excludes fresh) and combines males and females as above.  It then fits the linear model with a common slope and separate intercepts.}
+
+<<>>=
+mysis3.nfresh <- mysis3[mysis3$tx!="Fresh",]                                    # not fresh
+mysis3.nfresh$stage1 <- factor(ifelse(mysis3.nfresh$stage=="Grav","Grav","MF")) # combine males and females
+mysis3.fresh$tx <- factor(mysis3.fresh$tx)
+mysis3.nfresh$treat1 <- factor(mysis3.nfresh$stage1:mysis3.nfresh$tx)
+attach(mysis3.nfresh)
+lm3.nfresh <- lm(logwt~loglen+treat1)
+summary(lm3.nfresh)                                        # in ms
+@
+
+<<echo=FALSE,results=hide>>=
+c2 <- coef(lm3.nfresh)
+@
+
+\emph{Thus, the equations of the lines are (these are in the manuscript)...}
+
+\begin{itemize}
+  \item 8BF,MF: $log_{10}(W)$ = \Sexpr{round(c2[1]+c2[3],4)} + \Sexpr{round(c2[2],4)}$log_{10}(L)$
+  \item 8SBF,MF: $log_{10}(W)$ = \Sexpr{round(c2[1]+c2[4],4)} + \Sexpr{round(c2[2],4)}$log_{10}(L)$
+  \item 8SBF,Gravid: $log_{10}(W)$ = \Sexpr{round(c2[1],4)} + \Sexpr{round(c2[2],4)}$log_{10}(L)$
+\end{itemize}
+
+\emph{The following is not in the manuscript, it is just a visual and computational check.}
+<<label=indFitPlot2,fig=TRUE,include=FALSE>>=
+comp.intercepts(lm3.nfresh,0)                              # not in ms
+fit.plot(lm3.nfresh,main="",leg="topleft")                 # not in ms
+@
+
+\includegraphics[width=3in]{Figs/lw-indFitPlot2}
+<<>>=
+detach(mysis3.nfresh)
+@
+
+\subsubsection{R-square For Above Equations}
+\emph{The $R^2$ for the above equations can be computed easily by exploiting the fact that the $R^2$ for an equation can be computed with the $R^2$ between the observed response values and the predicted response values from the equation.}
+
+\emph{Begin by isolating the data for each of the five different groups.}
+<<>>=
+mysis4 <- mysis3
+mysis4$stage1 <- factor(ifelse(mysis4$stage=="Grav","Grav","MF"))
+data.Fmf <- subset(mysis4,stage1=="MF" & tx=="Fresh")
+data.Fg <- subset(mysis4,stage1=="Grav" & tx=="Fresh")
+data.8Bmf <- subset(mysis4,stage1=="MF" & tx=="8BF")
+data.8Smf <- subset(mysis4,stage1=="MF" & tx=="8SBF")
+data.8Sg <- subset(mysis4,stage1=="Grav" & tx=="8SBF")
+@
+
+\emph{Then find predicted $log_{10}(W)$ for each group}
+<<>>=
+pred.Fmf <- 2.7659*data.Fmf$loglen-2.4304
+pred.Fg <- 2.7659*data.Fg$loglen-2.3719
+pred.8Bmf <- 3.0665*data.8Bmf$loglen-2.7185
+pred.8Smf <- 3.0665*data.8Smf$loglen-2.5823
+pred.8Sg <- 3.0665*data.8Sg$loglen-2.5587
+@
+
+\emph{Then compute regressions}
+<<>>=
+lm.Fmf <- lm(pred.Fmf ~ data.Fmf$logwt)
+lm.Fg <- lm(pred.Fg ~ data.Fg$logwt)
+lm.8Bmf <- lm(pred.8Bmf ~ data.8Bmf$logwt)
+lm.8Smf <- lm(pred.8Smf ~ data.8Smf$logwt)
+lm.8Sg <- lm(pred.8Sg ~ data.8Sg$logwt)
+@
+
+\emph{And then extract $R^2$ values}
+<<>>=
+summary(lm.Fmf)$r.squared
+summary(lm.Fg)$r.squared
+summary(lm.8Bmf)$r.squared
+summary(lm.8Smf)$r.squared
+summary(lm.8Sg)$r.squared
+@
+
+\emph{For comparison purposes, the following is the $R^2$ from the fit of the linear model just to the Fresh,MF group.  This is on the raw data, as if the model was fit to just this group, and is not used in the manuscript.}
+
+<<>>=
+lm.Fmf1 <- lm(data.Fmf$logwt~data.Fmf$loglen)
+coef(lm.Fmf1)
+summary(lm.Fmf1)$r.squared
+@
+
+\subsubsection{The Plot for the Manuscript}
+<<echo=false,results=hide>>=
+options(SweaveHooks = list(fig = function() par(mar=c(3.5,3.5,1,1),mgp=c(2,0.75,0))))
+@
+
+<<label=fnlFitPlot,fig=TRUE,include=FALSE>>=
+plot(mysis4$c.wt~mysis4$len,log="xy",col="white",axes=FALSE,xlab=xlbl1,ylab=ylbl1,xlim=c(8,20),ylim=c(0.8,20))        # plot base
+axis(2,at=c(0.8,0.9,seq(1,10,by=1),20),labels=F)                                                                      # y-axis ticks
+axis(2,at=c(1,5,10,20),labels=T)                                                                                      # y-axis labels
+axis(1,at=c(8:20),labels=F)                                                                                           # x-axis ticks
+axis(1,at=c(8,10,15,20),labels=T)                                                                                     # x-axis labels
+points(data.Fmf$c.wt~data.Fmf$len,col="black",pch=19)
+points(data.Fg$c.wt~data.Fg$len,col="black",pch=17,cex=1.25)
+points(data.8Bmf$c.wt~data.8Bmf$len,col="black",pch=0)
+points(data.8Smf$c.wt~data.8Smf$len,col="black",pch=1)
+points(data.8Sg$c.wt~data.8Sg$len,col="black",pch=2)
+
+lines(c(8.1,19.5),10^c(2.7659*log10(8.1)-2.4304,2.7659*log10(19.5)-2.4304),lwd=3,col="black",lty=1)
+lines(c(12.9,19.5),10^c(2.7659*log10(12.9)-2.3719,2.7659*log10(19.5)-2.3719),lwd=3,col="black",lty=3)
+lines(c(8.9,19.5),10^c(3.0665*log10(8.9)-2.7185,3.0665*log10(19.5)-2.7185),lwd=3,col="gray",lty=2)
+lines(c(8.2,19.5),10^c(3.0665*log10(8.2)-2.5823,3.0665*log10(19.5)-2.5823),lwd=3,col="gray",lty=1)
+lines(c(13.7,19.5),10^c(3.0665*log10(13.7)-2.5587,3.0665*log10(19.5)-2.5587),lwd=3,col="gray",lty=3)
+legend(x=14,y=1.5,legend=c("Fresh,MF","Fresh,Grav"),lty=c(1,3),lwd=3,inset=0.02)
+legend(x=14,y=1.5,legend=c("",""),pch=c(19,17),pt.cex=1.25,inset=0.02,bty="n")
+legend("topleft",legend=c("8BF,MF","8SBF,MF","8SBF,Grav"),lty=c(2,1,3),lwd=3,col="gray",inset=0.02)
+legend("topleft",legend=c("","",""),pch=c(0,1,2),pt.cex=1.25,inset=0.02,bty="n")
+@
+
+\includegraphics[width=5in]{Figs/lw-fnlFitPlot}
+
+\end{document} 

@@ -1,0 +1,1007 @@
+%========================================================================================================================
+% setwd("c://aaaWork//Current Research//yNearlyFinished//MYSIS_Preservation//1_Analysis//")
+% Sweave("Final_Analysis.Rnw")
+%========================================================================================================================
+\documentclass[a4paper]{article}
+\include{preamble}
+
+\usepackage{C:/Apps/R/R-2.6.1/share/texmf/Sweave}
+\begin{document}
+%========================================================================================================================
+% Overall Sweave and R options %------------------------------------------------------------------------------------------------------------------------
+   % sets prefix for figures -- folder and prefix name
+                 % don't make EPS figures as we will only use PDF
+      % sets size of graphic in R
+
+%========================================================================================================================
+
+\title{Mysis Preservation -- Length-Weight Analysis for Manuscript}
+\author{\vspace{-12pt}}
+\date{\vspace{-12pt}\today}
+\maketitle
+\vspace{-24pt}
+
+\section{Length Analysis}
+\subsection{Initialization}
+\subsubsection{Data entry and cleaning}
+\begin{Schunk}
+\begin{Sinput}
+> mysis <- read.xls("Mysis_Data_Master.xls", sheet = "Mysis", colClasses = c("logical", 
++     "logical", "factor", "logical", "logical", "factor", "factor", "numeric", 
++     "factor", "factor", "isodate", "isotime", "factor", "factor", "factor", 
++     "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", 
++     "numeric", "numeric", "factor"))
+> mysisL <- mysis[mysis$include.L, ]
+> mysis.len <- mysisL[mysisL$use.l, ]
+> mysis.len$tx <- factor(mysis.len$tx)
+> mysis.len$stage <- factor(mysis.len$stage)
+> mysis.len$group <- mysis.len$stage:mysis.len$tx
+> mysis.len$loss.p2w <- mysis.len$len.p2w - mysis.len$len.fr
+> mysis.len$loss.p2m <- mysis.len$len.p2m - mysis.len$len.fr
+> mysis.len$ploss.p2w <- mysis.len$loss.p2w/mysis.len$len.fr
+> mysis.len$ploss.p2m <- mysis.len$loss.p2m/mysis.len$len.fr
+\end{Sinput}
+\end{Schunk}
+
+Getting rid of juveniles -- decided this from length-weight work -- see below.
+\begin{Schunk}
+\begin{Sinput}
+> mysis.len2 <- subset(mysis.len, stage != "Juv")
+> mysis.len2$stage <- factor(mysis.len2$stage)
+> mysis.len2$group <- factor(mysis.len2$group)
+\end{Sinput}
+\end{Schunk}
+
+% none of this is shown because decided to eliminate juveniles
+
+
+\subsection{Sample Summaries}
+These results form Table R1 in the manuscript.
+\begin{Schunk}
+\begin{Sinput}
+> attach(mysis.len2)
+> ftable(xtabs(~tx + stage))
+\end{Sinput}
+\begin{Soutput}
+     stage Fem Male
+tx                 
+8BF         24   18
+8SBF        15    8
+\end{Soutput}
+\begin{Sinput}
+> tapply(len.fr, stage:tx, Summary, na.rm = T)
+\end{Sinput}
+\begin{Soutput}
+$`Fem:8BF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 9.200000 10.000000 11.300000 12.200000 14.400000 16.000000  2.458964 
+
+$`Fem:8SBF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 8.300000  9.200000  9.600000 10.290000 10.400000 16.100000  1.974287 
+
+$`Male:8BF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+10.400000 12.830000 13.150000 13.110000 14.170000 14.500000  1.277815 
+
+$`Male:8SBF`
+      Min.    1st Qu.     Median       Mean    3rd Qu.       Max.      StDev 
+12.2000000 13.0200000 13.5500000 13.3100000 13.7000000 13.9000000  0.5792544 
+\end{Soutput}
+\begin{Sinput}
+> tapply(loss.p2w, stage:tx, Summary, na.rm = T)
+\end{Sinput}
+\begin{Soutput}
+$`Fem:8BF`
+      Min.    1st Qu.     Median       Mean    3rd Qu.       Max.      StDev 
+-0.6000000 -0.3250000 -0.2000000 -0.2125000 -0.1000000  0.2000000  0.1872281 
+
+$`Fem:8SBF`
+      Min.    1st Qu.     Median       Mean    3rd Qu.       Max.      StDev 
+-0.3000000 -0.2000000 -0.1000000 -0.1000000  0.0000000  0.1000000  0.1362770 
+
+$`Male:8BF`
+      Min.    1st Qu.     Median       Mean    3rd Qu.       Max.      StDev 
+-0.3000000 -0.2000000 -0.1000000 -0.1000000  0.0000000  0.1000000  0.1283378 
+
+$`Male:8SBF`
+      Min.    1st Qu.     Median       Mean    3rd Qu.       Max.      StDev 
+-0.5000000 -0.2000000  0.0000000 -0.1000000  0.0250000  0.2000000  0.2618615 
+\end{Soutput}
+\end{Schunk}
+
+\subsection{Results on Length After 2 Weeks Preservation}
+\textbf{Most (63.1\%) Mysids were shorter after two weeks of , while a small number (10.8\%) actually appeared to be longer after preservation.}
+\begin{Schunk}
+\begin{Sinput}
+> p <- prop.table(table(round(loss.p2w, 1)))
+> p
+\end{Sinput}
+\begin{Soutput}
+      -0.6       -0.5       -0.4       -0.3       -0.2       -0.1          0        0.1 
+0.01538462 0.04615385 0.06153846 0.13846154 0.20000000 0.16923077 0.26153846 0.07692308 
+       0.2 
+0.03076923 
+\end{Soutput}
+\begin{Sinput}
+> sum(p[1:6])
+\end{Sinput}
+\begin{Soutput}
+[1] 0.6307692
+\end{Soutput}
+\begin{Sinput}
+> sum(p[8:9])
+\end{Sinput}
+\begin{Soutput}
+[1] 0.1076923
+\end{Soutput}
+\end{Schunk}
+
+\textbf{The change in standard length after two weeks of preservation was not significantly related to the fresh standard length measurement (p=0.2001) nor did it differ between male and female Mysids (p=0.1732).  There was weak but insignificant evidence (p=0.0638) that Mysids preserved in 8\% buffered formalin lost more length than Mysids preserved in 8\% sugar-buffered formalin.}
+\begin{Schunk}
+\begin{Sinput}
+> lm2 <- lm(loss.p2w ~ len.fr * stage * tx)
+> Anova(lm2)
+\end{Sinput}
+\begin{Soutput}
+Anova Table (Type II tests)
+
+Response: loss.p2w
+                 Sum Sq Df F value  Pr(>F)  
+len.fr          0.05080  1  1.6752 0.20078  
+stage           0.05768  1  1.9023 0.17321  
+tx              0.10837  1  3.5740 0.06378 .
+len.fr:stage    0.03731  1  1.2305 0.27196  
+len.fr:tx       0.00300  1  0.0988 0.75445  
+stage:tx        0.03503  1  1.1551 0.28701  
+len.fr:stage:tx 0.00920  1  0.3036 0.58381  
+Residuals       1.72835 57                  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+\end{Soutput}
+\end{Schunk}
+
+\emph{The folowing plot is NOT in the manuscript.}
+\begin{Schunk}
+\begin{Sinput}
+> fit.plot(lm2, legend = "topleft")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-PlotRawLen}
+
+\textbf{Thus, regardless of fresh standard length, life stage or preservation type, Mysids lost an average of 0.14 mm (95\% CI: 0.10,0.19).}
+\begin{Schunk}
+\begin{Sinput}
+> t.test(loss.p2w)
+\end{Sinput}
+\begin{Soutput}
+	One Sample t-test
+
+data:  loss.p2w 
+t = -6.4265, df = 64, p-value = 1.865e-08
+alternative hypothesis: true mean is not equal to 0 
+95 percent confidence interval:
+ -0.18553658 -0.09754035 
+sample estimates:
+ mean of x 
+-0.1415385 
+\end{Soutput}
+\end{Schunk}
+
+\begin{Schunk}
+\begin{Sinput}
+> detach(mysis.len2)
+\end{Sinput}
+\end{Schunk}
+
+
+\section{Length-Weight Analysis}
+\subsection{Initialization}
+\subsubsection{Data entry and cleaning}
+\begin{Schunk}
+\begin{Sinput}
+> mysis <- read.xls("Mysis_Data_Master.xls", sheet = "Mysis")
+> mysis$c.wt <- mysis$c.wt * 1000
+> mysis1 <- mysis[mysis$include.LW, ]
+> mysis2 <- mysis1[mysis1$use.lw == TRUE, ]
+> mysis2$logwt <- log10(mysis2$c.wt)
+> mysis2$loglen <- log10(mysis2$len)
+> mysis2$treat <- mysis2$tx:mysis2$stage
+\end{Sinput}
+\end{Schunk}
+
+\R{mysis2} is now the cleaned and ready data frame.
+
+\subsubsection{declare some labels}
+\begin{Schunk}
+\begin{Sinput}
+> xlbl1 <- "Standard Length (mm)"
+> xlbl2 <- "log(Standard Length (mm))"
+> ylbl1 <- "Dry Weight (mg)"
+> ylbl2 <- "log(Dry Weight (mg))"
+\end{Sinput}
+\end{Schunk}
+
+\subsection{EDA}
+\subsubsection{Original data}
+\emph{None of this section is in the manuscript.}  Note (1) that gravid-8BF are missing and (2) increased variance at small lengths on log-log scale.  This led to the exclusion of juveniles -- problem with weights of small specimens.
+
+\begin{Schunk}
+\begin{Sinput}
+> attach(mysis2)
+> ftable(xtabs(~tx + stage + len.bin))
+\end{Sinput}
+\begin{Soutput}
+            len.bin  3  5  7  9 11 13 15 17
+tx    stage                                
+8BF   Fem            0  0  1 11  2  5  5  0
+      Grav           0  0  0  0  0  0  0  0
+      Juv            0  2  9  1  0  0  0  0
+      Male           0  0  0  2  5 11  0  0
+8SBF  Fem            0  0  4 10 12 19 14  1
+      Grav           0  0  0  0  0 12 12  3
+      Juv            2 20 23  3  0  0  0  0
+      Male           0  0  0  5 12 32  1  0
+Fresh Fem            0  0  3 11 10 19 13  5
+      Grav           0  0  0  0  1 12  6  3
+      Juv            1 19 16  0  0  0  0  0
+      Male           0  0  2  9 15 23  5  0
+\end{Soutput}
+\begin{Sinput}
+> ftable(xtabs(~tx + stage))
+\end{Sinput}
+\begin{Soutput}
+      stage Fem Grav Juv Male
+tx                           
+8BF          24    0  12   18
+8SBF         60   27  48   50
+Fresh        61   22  37   54
+\end{Soutput}
+\begin{Sinput}
+> plot(c.wt ~ len, pch = as.numeric(tx), col = as.numeric(stage), xlab = xlbl1, 
++     ylab = ylbl1)
+> legend(x = "topleft", legend = levels(tx:stage), col = rep(seq(1, 4), 
++     3), pch = rep(seq(1, 4), each = 4))
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-PlotRaw1}
+
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(logwt ~ loglen, pch = as.numeric(tx), col = as.numeric(stage), 
++     xlab = xlbl2, ylab = ylbl2)
+> legend(x = "topleft", legend = levels(tx:stage), col = rep(seq(1, 4), 
++     3), pch = rep(seq(1, 4), each = 4))
+> detach(mysis2)
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-PlotTrans1}
+
+\subsubsection{Permanently Remove Juveniles}
+\begin{Schunk}
+\begin{Sinput}
+> mysis3 <- mysis2[mysis2$stage != "Juv", ]
+> mysis3$stage <- factor(mysis3$stage)
+> mysis3$treat <- factor(mysis3$treat)
+> attach(mysis3)
+\end{Sinput}
+\end{Schunk}
+
+\R{mysis3} is now the cleaned and ready data frame
+
+\emph{These results are not in the manuscript -- just double-checking that juveniles have been removed.}
+\begin{Schunk}
+\begin{Sinput}
+> ftable(xtabs(~tx + stage + len.bin))
+\end{Sinput}
+\begin{Soutput}
+            len.bin  7  9 11 13 15 17
+tx    stage                          
+8BF   Fem            1 11  2  5  5  0
+      Grav           0  0  0  0  0  0
+      Male           0  2  5 11  0  0
+8SBF  Fem            4 10 12 19 14  1
+      Grav           0  0  0 12 12  3
+      Male           0  5 12 32  1  0
+Fresh Fem            3 11 10 19 13  5
+      Grav           0  0  1 12  6  3
+      Male           2  9 15 23  5  0
+\end{Soutput}
+\end{Schunk}
+
+The following results form Table R2 in the manuscript.
+\begin{Schunk}
+\begin{Sinput}
+> ftable(xtabs(~tx + stage))
+\end{Sinput}
+\begin{Soutput}
+      stage Fem Grav Male
+tx                       
+8BF          24    0   18
+8SBF         60   27   50
+Fresh        61   22   54
+\end{Soutput}
+\begin{Sinput}
+> tapply(len, stage:tx, Summary, na.rm = T)
+\end{Sinput}
+\begin{Soutput}
+$`Fem:8BF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 8.900000  9.800000 11.000000 11.990000 14.350000 16.000000  2.522752 
+
+$`Fem:8SBF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 8.200000 11.600000 13.850000 13.150000 14.900000 18.040000  2.541817 
+
+$`Fem:Fresh`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 8.600000 11.500000 13.800000 13.420000 15.100000 18.300000  2.611002 
+
+$`Grav:8BF`
+NULL
+
+$`Grav:8SBF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+13.730000 14.390000 15.100000 15.280000 15.840000 17.890000  1.125171 
+
+$`Grav:Fresh`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+12.900000 14.110000 14.680000 15.160000 16.460000 18.200000  1.517133 
+
+$`Male:8BF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+10.400000 12.550000 13.100000 13.010000 14.120000 14.600000  1.257396 
+
+$`Male:8SBF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 9.100000 12.620000 13.300000 13.180000 14.250000 15.100000  1.473647 
+
+$`Male:Fresh`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 8.100000 11.450000 13.100000 12.870000 14.470000 15.800000  1.890991 
+\end{Soutput}
+\begin{Sinput}
+> tapply(c.wt, stage:tx, Summary, na.rm = T)
+\end{Sinput}
+\begin{Soutput}
+$`Fem:8BF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 1.270000  2.145000  3.070000  4.644000  6.605000 11.480000  3.246756 
+
+$`Fem:8SBF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 1.665000  4.544000  8.073000  7.877000 10.590000 18.980000  4.141679 
+
+$`Fem:Fresh`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 0.880000  3.880000  5.080000  5.456000  7.165000 12.660000  2.783356 
+
+$`Grav:8BF`
+NULL
+
+$`Grav:8SBF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 7.965000  9.615000 11.060000 12.070000 14.720000 17.380000  2.952271 
+
+$`Grav:Fresh`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 3.965000  6.165000  7.915000  8.081000  9.451000 14.680000  2.512076 
+
+$`Male:8BF`
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max.    StDev 
+2.770000 4.155000 4.930000 5.045000 6.130000 7.480000 1.407255 
+
+$`Male:8SBF`
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max.     StDev 
+ 1.880000  6.269000  7.715000  7.445000  9.040000 11.270000  2.344641 
+
+$`Male:Fresh`
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max.    StDev 
+1.165000 3.005000 4.215000 4.628000 5.840000 9.965000 2.098266 
+\end{Soutput}
+\end{Schunk}
+
+\emph{The following figure is NOT in the manuscript.}
+\begin{Schunk}
+\begin{Sinput}
+> plot(logwt ~ loglen, pch = as.numeric(tx), col = as.numeric(stage), 
++     xlab = xlbl2, ylab = ylbl2)
+> legend(x = "topleft", legend = levels(tx:stage), col = rep(seq(1, 3), 
++     3), pch = rep(seq(1, 3), each = 3))
+> detach(mysis3)
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-PlotTrans2}
+
+\subsection{First Length-Weight Model Analysis}
+The first model examined the effect of all three preservation treatments and two life stages (males and females) on the L-W relationship.
+
+\subsubsection{Temporarily excludes gravids}
+\emph{None of these results are in the manuscript.}
+\begin{Schunk}
+\begin{Sinput}
+> mysis3.nograv <- mysis3[mysis3$stage != "Grav", ]
+> mysis3.nograv$stage <- factor(mysis3.nograv$stage)
+> mysis3.nograv$treat <- factor(mysis3.nograv$treat)
+> attach(mysis3.nograv)
+> ftable(xtabs(~tx + stage + len.bin))
+\end{Sinput}
+\begin{Soutput}
+            len.bin  7  9 11 13 15 17
+tx    stage                          
+8BF   Fem            1 11  2  5  5  0
+      Male           0  2  5 11  0  0
+8SBF  Fem            4 10 12 19 14  1
+      Male           0  5 12 32  1  0
+Fresh Fem            3 11 10 19 13  5
+      Male           2  9 15 23  5  0
+\end{Soutput}
+\end{Schunk}
+
+\subsubsection{Fitting The Model}
+\begin{Schunk}
+\begin{Sinput}
+> lm1 <- lm(logwt ~ loglen * tx * stage)
+\end{Sinput}
+\end{Schunk}
+
+\subsubsection*{Assumption Checking}
+\emph{None of these results are in the manuscript.  The normality test and non-constant variance test both indicate assumption violations.  However, the residual plot shows a general homoscedasticity (with the exception of two minor outliers and a small narrowing at large lengths) and the histogram is largely symmetric.}
+
+\begin{Schunk}
+\begin{Sinput}
+> fit.plot(lm1, leg = "topleft", main = "")
+> ad.test(lm1$residuals)
+\end{Sinput}
+\begin{Soutput}
+	Anderson-Darling normality test
+
+data:  lm1$residuals 
+A = 0.8453, p-value = 0.02923
+\end{Soutput}
+\begin{Sinput}
+> ncv.test(lm1)
+\end{Sinput}
+\begin{Soutput}
+Non-constant Variance Score Test 
+Variance formula: ~ fitted.values 
+Chisquare = 10.80524    Df = 1     p = 0.00101213 
+\end{Soutput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-mdl1FitPlot1}
+
+\begin{Schunk}
+\begin{Sinput}
+> residual.plot(lm1, main = "")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-mdl1ResidPlot1}
+
+\begin{Schunk}
+\begin{Sinput}
+> hist(lm1$residuals, main = "")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-mdl1ResidHist1}
+
+\subsubsection*{Results}
+
+\textbf{The first linear model fit to males and females and all three preservation treatments showed that there was a significant difference in slope among the three preservation treatments (p=0.0213) but not among the two life-stages (p=0.4457).}
+
+\textbf{The mean log(weight) adjusted for log(length) did not differ among male and females (p=0.4038).}
+
+\begin{Schunk}
+\begin{Sinput}
+> Anova(lm1)
+\end{Sinput}
+\begin{Soutput}
+Anova Table (Type II tests)
+
+Response: logwt
+                 Sum Sq  Df   F value  Pr(>F)    
+loglen          13.5407   1 2593.5986 < 2e-16 ***
+tx               1.9385   2  185.6499 < 2e-16 ***
+stage            0.0037   1    0.6992 0.40382    
+loglen:tx        0.0408   2    3.9089 0.02128 *  
+loglen:stage     0.0030   1    0.5835 0.44567    
+tx:stage         0.0010   2    0.0943 0.91005    
+loglen:tx:stage  0.0215   2    2.0626 0.12923    
+Residuals        1.3313 255                      
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+\end{Soutput}
+\end{Schunk}
+
+\textbf{Post hoc multiple comparisons indicated that the 8\% buffered formalin and 8\% sugar-buffered formalin treatments had statistically similar slopes (p=0.7974) that were significantly steeper than the slope of the fresh preserved treatment (p<0.0798).}
+
+\begin{Schunk}
+\begin{Sinput}
+> comp.slopes(lm1)
+\end{Sinput}
+\begin{Soutput}
+Multiple comparison control procedures used: fdr 
+
+Multiple Slope Comparisons
+  comparison     diff      lwr      upr   raw.p   adj.p
+1   8SBF-8BF -0.04466 -0.38690  0.29758 0.79743 0.79743
+2  Fresh-8BF -0.33003 -0.66463  0.00456 0.05318 0.07977
+3 Fresh-8SBF -0.28538 -0.53023 -0.04053 0.02253 0.06759
+
+Slope Information
+  level  slopes     lwr     upr raw.p adj.p
+3 Fresh 2.77462 2.60912 2.94011     0     0
+2  8SBF 3.06000 2.87954 3.24045     0     0
+1   8BF 3.10465 2.81385 3.39545     0     0
+\end{Soutput}
+\end{Schunk}
+
+\emph{Removed fresh treatment and fit a model with males and females combined to see if there was a difference in intercepts between the 8\% buffered formalin and 8\% sugar buffered formalin group.}
+
+\begin{Schunk}
+\begin{Sinput}
+> detach(mysis3.nograv)
+> mysis3.nograv.nofresh <- mysis3.nograv[mysis3.nograv$tx != "Fresh", 
++     ]
+> mysis3.nograv.nofresh$tx <- factor(mysis3.nograv.nofresh$tx)
+> attach(mysis3.nograv.nofresh)
+> lm1a <- lm(logwt ~ loglen + tx)
+\end{Sinput}
+\end{Schunk}
+
+\textbf{Further comparisons indicated that the 8\% sugar-buffered formalin treatment had a larger mean log(weight) than the 8\% buffered formalin treatment for all values of log(length) (p<0.0005).}
+\begin{Schunk}
+\begin{Sinput}
+> anova(lm1a)
+\end{Sinput}
+\begin{Soutput}
+Analysis of Variance Table
+
+Response: logwt
+           Df Sum Sq Mean Sq F value    Pr(>F)    
+loglen      1 8.9499  8.9499 2647.80 < 2.2e-16 ***
+tx          1 0.5505  0.5505  162.86 < 2.2e-16 ***
+Residuals 149 0.5036  0.0034                      
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+\end{Soutput}
+\begin{Sinput}
+> comp.intercepts(lm1a)
+\end{Sinput}
+\begin{Soutput}
+Tukey HSD on adjusted means assuming parallel lines.
+  comparison      diff       lwr       upr p.adj
+1   8SBF-8BF 0.1360738 0.1153065 0.1568411     0
+
+Mean adjusted values at a covariate value of 1.10621751474566 
+      8BF      8SBF 
+0.6738179 0.8098917 
+\end{Soutput}
+\begin{Sinput}
+> detach(mysis3.nograv.nofresh)
+\end{Sinput}
+\end{Schunk}
+
+\subsection{Second Length-Weight Model Analysis}
+The second model examined the effect of two preservation treatments (fresh preserved and 8% sugar-buffered formalin) and all three life stages on the L-W relationship.
+
+\subsubsection{Temporarily Excludes 8\% Buffered Formaling Treatment}
+\begin{Schunk}
+\begin{Sinput}
+> mysis3.no8BF <- mysis3[mysis3$tx != "8BF", ]
+> mysis3.no8BF$stage <- factor(mysis3.no8BF$stage)
+> mysis3.no8BF$tx <- factor(mysis3.no8BF$tx)
+> mysis3.no8BF$treat <- factor(mysis3.no8BF$treat)
+> attach(mysis3.no8BF)
+> ftable(xtabs(~tx + stage + len.bin))
+\end{Sinput}
+\begin{Soutput}
+            len.bin  7  9 11 13 15 17
+tx    stage                          
+8SBF  Fem            4 10 12 19 14  1
+      Grav           0  0  0 12 12  3
+      Male           0  5 12 32  1  0
+Fresh Fem            3 11 10 19 13  5
+      Grav           0  0  1 12  6  3
+      Male           2  9 15 23  5  0
+\end{Soutput}
+\end{Schunk}
+
+\subsubsection{Fitting The Model}
+\begin{Schunk}
+\begin{Sinput}
+> lm2 <- lm(logwt ~ loglen * tx * stage)
+\end{Sinput}
+\end{Schunk}
+
+\subsubsection*{Assumption Checking}
+\emph{None of these results are in the manuscript.  The normality test and non-constant variance test both indicate assumption violations.  However, the residual plot shows a general homoscedasticity (with the exception of two minor outliers and a small narrowing at large lengths) and the histogram is largely symmetric.}
+
+\begin{Schunk}
+\begin{Sinput}
+> fit.plot(lm2, leg = "topleft", main = "")
+> ad.test(lm2$residuals)
+\end{Sinput}
+\begin{Soutput}
+	Anderson-Darling normality test
+
+data:  lm2$residuals 
+A = 0.6848, p-value = 0.07297
+\end{Soutput}
+\begin{Sinput}
+> ncv.test(lm2)
+\end{Sinput}
+\begin{Soutput}
+Non-constant Variance Score Test 
+Variance formula: ~ fitted.values 
+Chisquare = 13.57363    Df = 1     p = 0.0002293850 
+\end{Soutput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-mdl2FitPlot1}
+
+\begin{Schunk}
+\begin{Sinput}
+> residual.plot(lm2, main = "")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-mdl2ResidPlot1}
+
+\begin{Schunk}
+\begin{Sinput}
+> hist(lm2$residuals, main = "")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-mdl2ResidHist1}
+
+\subsubsection*{Results}
+
+\textbf{The second linear model fit to all three life-stages and the fresh preserved and 8\% sugar-buffered formalin treatments showed that there was a significantly steeper slope for the 8\% sugar-buffered formalin treatment (p=0.012) but no difference in slope among the three life-stages (0.4124).}
+
+\begin{Schunk}
+\begin{Sinput}
+> Anova(lm2)
+\end{Sinput}
+\begin{Soutput}
+Anova Table (Type II tests)
+
+Response: logwt
+                 Sum Sq  Df   F value    Pr(>F)    
+loglen          11.8507   1 2326.8062 < 2.2e-16 ***
+tx               2.1941   1  430.7889 < 2.2e-16 ***
+stage            0.0605   2    5.9392  0.003002 ** 
+loglen:tx        0.0326   1    6.4052  0.011965 *  
+loglen:stage     0.0091   2    0.8888  0.412395    
+tx:stage         0.0103   2    1.0138  0.364265    
+loglen:tx:stage  0.0108   2    1.0634  0.346778    
+Residuals        1.3344 262                        
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+\end{Soutput}
+\begin{Sinput}
+> comp.slopes(lm2)
+\end{Sinput}
+\begin{Soutput}
+Multiple comparison control procedures used: fdr 
+
+Multiple Slope Comparisons
+  comparison     diff      lwr      upr   raw.p   adj.p
+1 Fresh-8SBF -0.25238 -0.47839 -0.02638 0.02876 0.02876
+
+Slope Information
+  level  slopes     lwr     upr raw.p adj.p
+2 Fresh 2.84961 2.69511 3.00411     0     0
+1  8SBF 3.10199 2.93705 3.26694     0     0
+\end{Soutput}
+\end{Schunk}
+
+\textbf{Within a preservation treatment there was a significant difference in mean log(weight) adjusted for log(length) (0.0241) with gravid females being significantly heavier than male or non-gravid females for all values of log(length) (p<0.0336).}
+
+\begin{Schunk}
+\begin{Sinput}
+> lm2a <- lm(logwt ~ loglen + stage)
+> anova(lm2a)
+\end{Sinput}
+\begin{Soutput}
+Analysis of Variance Table
+
+Response: logwt
+           Df  Sum Sq Mean Sq   F value  Pr(>F)    
+loglen      1 14.4866 14.4866 1085.5607 < 2e-16 ***
+stage       2  0.1009  0.0504    3.7795 0.02405 *  
+Residuals 270  3.6031  0.0133                      
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+\end{Soutput}
+\begin{Sinput}
+> comp.intercepts(lm2a)
+\end{Sinput}
+\begin{Soutput}
+Tukey HSD on adjusted means assuming parallel lines.
+  comparison         diff          lwr          upr      p.adj
+1   Grav-Fem  0.049036498  0.003022977  0.095050020 0.03361352
+2   Male-Fem -0.007539737 -0.043875446  0.028795972 0.87659483
+3  Male-Grav -0.056576235 -0.103661253 -0.009491217 0.01375084
+
+Mean adjusted values at a covariate value of 1.12492564403163 
+      Fem      Grav      Male 
+0.7755453 0.8245818 0.7680056 
+\end{Soutput}
+\begin{Sinput}
+> detach(mysis3.no8BF)
+\end{Sinput}
+\end{Schunk}
+
+
+\subsection{Length-Weight Regressions for Different Groups}
+\subsubsection{Males and Females in Fresh Group}
+\emph{This isolates just the fresh treatment and creates a stage variable that has gravid females and males/females combined.  It then fits a model with a common slope and separate intercepts by the new stage variable.}
+
+\begin{Schunk}
+\begin{Sinput}
+> mysis3.fresh <- mysis3[mysis3$tx == "Fresh", ]
+> mysis3.fresh$stage1 <- factor(ifelse(mysis3.fresh$stage == "Grav", "Grav", 
++     "MF"))
+> mysis3.fresh$tx <- factor(mysis3.fresh$tx)
+> attach(mysis3.fresh)
+> lm3.fresh <- lm(logwt ~ loglen + stage1)
+> summary(lm3.fresh)
+\end{Sinput}
+\begin{Soutput}
+Call:
+lm(formula = logwt ~ loglen + stage1)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.223649 -0.059177  0.007352  0.063210  0.209712 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -2.37190    0.11558 -20.522  < 2e-16 ***
+loglen       2.76585    0.09684  28.562  < 2e-16 ***
+stage1MF    -0.05854    0.02087  -2.806  0.00577 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+
+Residual standard error: 0.0853 on 134 degrees of freedom
+Multiple R-Squared: 0.878,	Adjusted R-squared: 0.8762 
+F-statistic: 482.4 on 2 and 134 DF,  p-value: < 2.2e-16 
+\end{Soutput}
+\end{Schunk}
+
+
+\emph{Thus, the equations of the lines are (these are in the manuscript)...}
+
+\begin{itemize}
+  \item Fresh,MF: $log_{10}(W)$ = -2.4304 + 2.7659$log_{10}(L)$
+  \item Fresh,Gravid: $log_{10}(W)$ = -2.3719 + 2.7659$log_{10}(L)$
+\end{itemize}
+
+\emph{The following is not in the manuscript -- just a visual check}
+\begin{Schunk}
+\begin{Sinput}
+> fit.plot(lm3.fresh, main = "", leg = "topleft")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-indFitPlot1}
+
+\begin{Schunk}
+\begin{Sinput}
+> detach(mysis3.fresh)
+\end{Sinput}
+\end{Schunk}
+
+\subsubsection{Males and Females in Fresh Group}
+\emph{This isolates the 8BF and 8SBF groups (excludes fresh) and combines males and females as above.  It then fits the linear model with a common slope and separate intercepts.}
+
+\begin{Schunk}
+\begin{Sinput}
+> mysis3.nfresh <- mysis3[mysis3$tx != "Fresh", ]
+> mysis3.nfresh$stage1 <- factor(ifelse(mysis3.nfresh$stage == "Grav", 
++     "Grav", "MF"))
+> mysis3.fresh$tx <- factor(mysis3.fresh$tx)
+> mysis3.nfresh$treat1 <- factor(mysis3.nfresh$stage1:mysis3.nfresh$tx)
+> attach(mysis3.nfresh)
+> lm3.nfresh <- lm(logwt ~ loglen + treat1)
+> summary(lm3.nfresh)
+\end{Sinput}
+\begin{Soutput}
+Call:
+lm(formula = logwt ~ loglen + treat1)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.217285 -0.029277  0.003547  0.043603  0.112868 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   -2.55867    0.07330 -34.906   <2e-16 ***
+loglen         3.06650    0.06124  50.071   <2e-16 ***
+treat1MF:8BF  -0.15985    0.01536 -10.406   <2e-16 ***
+treat1MF:8SBF -0.02362    0.01310  -1.804    0.073 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+
+Residual standard error: 0.05762 on 175 degrees of freedom
+Multiple R-Squared: 0.9528,	Adjusted R-squared: 0.952 
+F-statistic:  1178 on 3 and 175 DF,  p-value: < 2.2e-16 
+\end{Soutput}
+\end{Schunk}
+
+
+\emph{Thus, the equations of the lines are (these are in the manuscript)...}
+
+\begin{itemize}
+  \item 8BF,MF: $log_{10}(W)$ = -2.7185 + 3.0665$log_{10}(L)$
+  \item 8SBF,MF: $log_{10}(W)$ = -2.5823 + 3.0665$log_{10}(L)$
+  \item 8SBF,Gravid: $log_{10}(W)$ = -2.5587 + 3.0665$log_{10}(L)$
+\end{itemize}
+
+\emph{The following is not in the manuscript, it is just a visual and computational check.}
+\begin{Schunk}
+\begin{Sinput}
+> comp.intercepts(lm3.nfresh, 0)
+\end{Sinput}
+\begin{Soutput}
+Tukey HSD on adjusted means assuming parallel lines.
+         comparison        diff        lwr          upr        p.adj
+1  MF:8BF-Grav:8SBF -0.15984574 -0.1933487 -0.126342799 6.061818e-14
+2 MF:8SBF-Grav:8SBF -0.02362329 -0.0527940  0.005547414 1.376686e-01
+3    MF:8SBF-MF:8BF  0.13622245  0.1115867  0.160858192 4.918288e-14
+
+Mean adjusted values at a covariate value of 0 
+Grav:8SBF    MF:8BF   MF:8SBF 
+-2.558665 -2.718511 -2.582288 
+\end{Soutput}
+\begin{Sinput}
+> fit.plot(lm3.nfresh, main = "", leg = "topleft")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=3in]{Figs/lw-indFitPlot2}
+\begin{Schunk}
+\begin{Sinput}
+> detach(mysis3.nfresh)
+\end{Sinput}
+\end{Schunk}
+
+\subsubsection{R-square For Above Equations}
+\emph{The $R^2$ for the above equations can be computed easily by exploiting the fact that the $R^2$ for an equation can be computed with the $R^2$ between the observed response values and the predicted response values from the equation.}
+
+\emph{Begin by isolating the data for each of the five different groups.}
+\begin{Schunk}
+\begin{Sinput}
+> mysis4 <- mysis3
+> mysis4$stage1 <- factor(ifelse(mysis4$stage == "Grav", "Grav", "MF"))
+> data.Fmf <- subset(mysis4, stage1 == "MF" & tx == "Fresh")
+> data.Fg <- subset(mysis4, stage1 == "Grav" & tx == "Fresh")
+> data.8Bmf <- subset(mysis4, stage1 == "MF" & tx == "8BF")
+> data.8Smf <- subset(mysis4, stage1 == "MF" & tx == "8SBF")
+> data.8Sg <- subset(mysis4, stage1 == "Grav" & tx == "8SBF")
+\end{Sinput}
+\end{Schunk}
+
+\emph{Then find predicted $log_{10}(W)$ for each group}
+\begin{Schunk}
+\begin{Sinput}
+> pred.Fmf <- 2.7659 * data.Fmf$loglen - 2.4304
+> pred.Fg <- 2.7659 * data.Fg$loglen - 2.3719
+> pred.8Bmf <- 3.0665 * data.8Bmf$loglen - 2.7185
+> pred.8Smf <- 3.0665 * data.8Smf$loglen - 2.5823
+> pred.8Sg <- 3.0665 * data.8Sg$loglen - 2.5587
+\end{Sinput}
+\end{Schunk}
+
+\emph{Then compute regressions}
+\begin{Schunk}
+\begin{Sinput}
+> lm.Fmf <- lm(pred.Fmf ~ data.Fmf$logwt)
+> lm.Fg <- lm(pred.Fg ~ data.Fg$logwt)
+> lm.8Bmf <- lm(pred.8Bmf ~ data.8Bmf$logwt)
+> lm.8Smf <- lm(pred.8Smf ~ data.8Smf$logwt)
+> lm.8Sg <- lm(pred.8Sg ~ data.8Sg$logwt)
+\end{Sinput}
+\end{Schunk}
+
+\emph{And then extract $R^2$ values}
+\begin{Schunk}
+\begin{Sinput}
+> summary(lm.Fmf)$r.squared
+\end{Sinput}
+\begin{Soutput}
+[1] 0.8688818
+\end{Soutput}
+\begin{Sinput}
+> summary(lm.Fg)$r.squared
+\end{Sinput}
+\begin{Soutput}
+[1] 0.6865749
+\end{Soutput}
+\begin{Sinput}
+> summary(lm.8Bmf)$r.squared
+\end{Sinput}
+\begin{Soutput}
+[1] 0.9206869
+\end{Soutput}
+\begin{Sinput}
+> summary(lm.8Smf)$r.squared
+\end{Sinput}
+\begin{Soutput}
+[1] 0.9501737
+\end{Soutput}
+\begin{Sinput}
+> summary(lm.8Sg)$r.squared
+\end{Sinput}
+\begin{Soutput}
+[1] 0.7329088
+\end{Soutput}
+\end{Schunk}
+
+\emph{For comparison purposes, the following is the $R^2$ from the fit of the linear model just to the Fresh,MF group.  This is on the raw data, as if the model was fit to just this group, and is not used in the manuscript.}
+
+\begin{Schunk}
+\begin{Sinput}
+> lm.Fmf1 <- lm(data.Fmf$logwt ~ data.Fmf$loglen)
+> coef(lm.Fmf1)
+\end{Sinput}
+\begin{Soutput}
+    (Intercept) data.Fmf$loglen 
+      -2.440190        2.774618 
+\end{Soutput}
+\begin{Sinput}
+> summary(lm.Fmf1)$r.squared
+\end{Sinput}
+\begin{Soutput}
+[1] 0.8688818
+\end{Soutput}
+\end{Schunk}
+
+\subsubsection{The Plot for the Manuscript}
+
+\begin{Schunk}
+\begin{Sinput}
+> plot(mysis4$c.wt ~ mysis4$len, log = "xy", col = "white", axes = FALSE, 
++     xlab = xlbl1, ylab = ylbl1, xlim = c(8, 20), ylim = c(0.8, 20))
+> axis(2, at = c(0.8, 0.9, seq(1, 10, by = 1), 20), labels = F)
+> axis(2, at = c(1, 5, 10, 20), labels = T)
+> axis(1, at = c(8:20), labels = F)
+> axis(1, at = c(8, 10, 15, 20), labels = T)
+> points(data.Fmf$c.wt ~ data.Fmf$len, col = "black", pch = 19)
+> points(data.Fg$c.wt ~ data.Fg$len, col = "black", pch = 17, cex = 1.25)
+> points(data.8Bmf$c.wt ~ data.8Bmf$len, col = "black", pch = 0)
+> points(data.8Smf$c.wt ~ data.8Smf$len, col = "black", pch = 1)
+> points(data.8Sg$c.wt ~ data.8Sg$len, col = "black", pch = 2)
+> lines(c(8.1, 19.5), 10^c(2.7659 * log10(8.1) - 2.4304, 2.7659 * log10(19.5) - 
++     2.4304), lwd = 3, col = "black", lty = 1)
+> lines(c(12.9, 19.5), 10^c(2.7659 * log10(12.9) - 2.3719, 2.7659 * log10(19.5) - 
++     2.3719), lwd = 3, col = "black", lty = 3)
+> lines(c(8.9, 19.5), 10^c(3.0665 * log10(8.9) - 2.7185, 3.0665 * log10(19.5) - 
++     2.7185), lwd = 3, col = "gray", lty = 2)
+> lines(c(8.2, 19.5), 10^c(3.0665 * log10(8.2) - 2.5823, 3.0665 * log10(19.5) - 
++     2.5823), lwd = 3, col = "gray", lty = 1)
+> lines(c(13.7, 19.5), 10^c(3.0665 * log10(13.7) - 2.5587, 3.0665 * log10(19.5) - 
++     2.5587), lwd = 3, col = "gray", lty = 3)
+> legend(x = 14, y = 1.5, legend = c("Fresh,MF", "Fresh,Grav"), lty = c(1, 
++     3), lwd = 3, inset = 0.02)
+> legend(x = 14, y = 1.5, legend = c("", ""), pch = c(19, 17), pt.cex = 1.25, 
++     inset = 0.02, bty = "n")
+> legend("topleft", legend = c("8BF,MF", "8SBF,MF", "8SBF,Grav"), lty = c(2, 
++     1, 3), lwd = 3, col = "gray", inset = 0.02)
+> legend("topleft", legend = c("", "", ""), pch = c(0, 1, 2), pt.cex = 1.25, 
++     inset = 0.02, bty = "n")
+\end{Sinput}
+\end{Schunk}
+
+\includegraphics[width=5in]{Figs/lw-fnlFitPlot}
+
+\end{document} 

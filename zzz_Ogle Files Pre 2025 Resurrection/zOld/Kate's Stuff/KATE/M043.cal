@@ -1,0 +1,15 @@
+[Calibration]
+FileVersion=3
+DistanceUnits=
+AreaUnits=
+IntensityUnits=
+XYCalibrated=1
+IntensityCalibrated=0
+MaxIntensities=256
+CM00=0.0303929
+CM01=0
+CM02=0
+CM10=0
+CM11=0.0303929
+CM12=0
+StartTable=256
